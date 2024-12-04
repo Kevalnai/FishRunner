@@ -11,7 +11,7 @@ namespace FishRunner
     {
         private GraphicsDeviceManager _graphics;
         private SpriteBatch _spriteBatch;
-       
+
         private Texture2D fishTexture;
         private Texture2D harpoonTexture;
         private Texture2D hunterTexture;
@@ -35,6 +35,16 @@ namespace FishRunner
 
 
         private Random random = new Random();
+
+        private enum GameState
+        {
+            Menu,
+            Playing,
+            GameOver
+        }
+
+        private GameState currentState = GameState.Menu;
+
 
         public Game1()
         {
@@ -76,9 +86,37 @@ namespace FishRunner
 
             // TODO: Add your update logic here
 
-            if (gameOver || gameWon)
-                return;
+            switch (currentState)
+            {
+                case GameState.Menu:
+                    UpdateMenuState();
+                    break;
 
+                case GameState.Playing:
+                    UpdatePlayingState();
+                    break;
+
+                case GameState.GameOver:
+                    UpdateGameOverState();
+                    break;
+            }
+
+
+
+            base.Update(gameTime);
+        }
+
+        private void UpdateMenuState()
+        {
+            // Check for user input to start the game (e.g., pressing Enter)
+            if (Keyboard.GetState().IsKeyDown(Keys.Enter))
+            {
+                currentState = GameState.Playing;
+            }
+        }
+
+        private void UpdatePlayingState()
+        {
             // Update the player and fish
             player.Update();
 
@@ -111,10 +149,23 @@ namespace FishRunner
             if (elapsedTime >= 600) // 10 seconds of gameplay
             {
                 gameWon = true;
+                currentState = GameState.GameOver;  // Switch to GameOver state when the game is won
             }
-
-            base.Update(gameTime);
         }
+
+        private void UpdateGameOverState()
+        {
+            // Handle any inputs to restart or exit (e.g., pressing Enter to restart)
+            if (Keyboard.GetState().IsKeyDown(Keys.Enter))
+            {
+                // Reset the game for a new round
+                score = 0;
+                elapsedTime = 0;
+                fishes.Clear();
+                currentState = GameState.Playing;
+            }
+        }
+
 
         protected override void Draw(GameTime gameTime)
         {
@@ -126,59 +177,60 @@ namespace FishRunner
 
             _spriteBatch.Begin();
 
-            // Scale the underwater background to fit the entire screen
-            _spriteBatch.Draw(underwaterBackground,
-                              new Rectangle(0, 0, _graphics.PreferredBackBufferWidth, _graphics.PreferredBackBufferHeight),
-                              Color.White);
-
-            // Draw the fish, using the fishScale variable for resizing
-            foreach (var fish in fishes)
+            switch (currentState)
             {
-                _spriteBatch.Draw(fishTexture,
-                                  fish.position,
-                                  null,
-                                  Color.White,
-                                  0f,
-                                  Vector2.Zero,
-                                  fishScale,
-                                  SpriteEffects.None,
-                                  0f);
+                case GameState.Menu:
+                    DrawMenuState();
+                    break;
+
+                case GameState.Playing:
+                    DrawPlayingState();
+                    break;
+
+                case GameState.GameOver:
+                    DrawGameOverState();
+                    break;
             }
 
-            // Draw the harpoon, using the harpoonScale variable for resizing
-            _spriteBatch.Draw(harpoonTexture,
-                              player.currentHarpoon.position,
-                              null,
-                              Color.White,
-                              0f,
-                              Vector2.Zero,
-                              harpoonScale,
-                              SpriteEffects.None,
-                              0f);
 
-            // Draw the hunter, using the hunterScale variable for resizing
-            _spriteBatch.Draw(hunterTexture,
-                              player.position,
-                              null,
-                              Color.White,
-                              0f,
-                              Vector2.Zero,
-                              hunterScale,
-                              SpriteEffects.None,
-                              0f);
-
-            // Draw the score and other text elements
-            _spriteBatch.DrawString(gameFont, "Score: " + score, new Vector2(10, 10), Color.White);
-
-            if (gameOver || gameWon)
-            {
-                string message = gameController.GetGameOverMessage(gameWon);
-                _spriteBatch.DrawString(gameFont, message, new Vector2(400, 400), Color.White);
-            }
 
             _spriteBatch.End();
 
             base.Draw(gameTime);
+        }
+
+        private void DrawMenuState()
+        {
+            // Draw the menu background and instructions
+            _spriteBatch.DrawString(gameFont, "Welcome to Fish Runner!", new Vector2(400, 200), Color.White);
+            _spriteBatch.DrawString(gameFont, "Press Enter to Start", new Vector2(450, 300), Color.White);
+        }
+
+        private void DrawPlayingState()
+        {
+            // Draw the underwater background
+            _spriteBatch.Draw(underwaterBackground,
+                              new Rectangle(0, 0, _graphics.PreferredBackBufferWidth, _graphics.PreferredBackBufferHeight),
+                              Color.White);
+
+            // Draw fish, harpoon, and hunter
+            foreach (var fish in fishes)
+            {
+                _spriteBatch.Draw(fishTexture, fish.position, null, Color.White, 0f, Vector2.Zero, fishScale, SpriteEffects.None, 0f);
+            }
+
+            _spriteBatch.Draw(harpoonTexture, player.currentHarpoon.position, null, Color.White, 0f, Vector2.Zero, harpoonScale, SpriteEffects.None, 0f);
+            _spriteBatch.Draw(hunterTexture, player.position, null, Color.White, 0f, Vector2.Zero, hunterScale, SpriteEffects.None, 0f);
+
+            // Draw score
+            _spriteBatch.DrawString(gameFont, "Score: " + score, new Vector2(10, 10), Color.White);
+        }
+
+        private void DrawGameOverState()
+        {
+            string message = gameController.GetGameOverMessage(gameWon);
+            _spriteBatch.DrawString(gameFont, message, new Vector2(400, 400), Color.White);
+            _spriteBatch.DrawString(gameFont, "Press Enter to Restart", new Vector2(400, 500), Color.White);
         }
     }
 }
